@@ -91,7 +91,7 @@ module.exports = function(text) {
             tokens[i].value = parseFloat(tokens[i].token, 10);
         } else if (tokens[i].type == 'variable') {
             //Extract power, coefficients, and symbol
-            var match = tokens[i].token.match(/^(-?\d+(?:,\d+)*(?:\.\d+(?:e\d+)?)?)?([a-zA-Z])\^?(\d*)?$/);
+            var match = tokens[i].token.match(/^(-?\d*(?:,\d+)*(?:\.\d+(?:e\d+)?)?)?([a-zA-Z])\^?(\d*)?$/);
             tokens[i].symbol = [match[2]];
             if (!match[1]) {
                 tokens[i].coefficient = 1;

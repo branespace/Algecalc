@@ -94,12 +94,23 @@
 	    answerDiv.className = 'solution ' + solutionCount;
 
 	    //TESTING
+	    console.log('Expression:');
+	    console.log(tokenArray.map(function(val){return val.token}).join(' '));
 	    var postfix = (__webpack_require__(13)(tokenArray.slice()));
+	    console.log('Postfixed value:');
 	    console.log(postfix.map(function(val){return val.token;}).join(' '));
 	    var binaryTree = (__webpack_require__(14)(postfix.slice()));
+	    console.log('Binary tree:');
 	    console.dir(binaryTree);
 	    var tokenizedArray = (__webpack_require__(15)(binaryTree));
+	    console.log('Back to tokenized array:');
 	    console.log(tokenizedArray.map(function(val){return val.token}).join(' '));
+	    var evaluated = (__webpack_require__(16)(binaryTree));
+	    //console.log('Flattened tree:');
+	    //console.dir(flattenedTree);
+	    //var evaluated = (require('./algebra/binaryTreeToTokenizedArray')(flattenedTree));
+	    console.log('Evaluated tree:');
+	    //console.log(evaluated.map(function(val){return val.token}).join(' '));
 
 	    //Create and add expression and RPN string
 	    answerDiv.innerHTML += "<br />Expression: " + delim.open + tokenArray.map(function(val) { 
@@ -107,25 +118,26 @@
 	        }).join(' ') + delim.close;
 	    
 	    //Perform calculation
-	    var calculation = calculateVal(expr);
+	    //var calculation = calculateVal(expr);
 	    //Iterate through steps
-	    for(var i = 0; i < calculation.steps.length; i++) {
+	    for(var i = 0; i < evaluated.steps.length; i++) {
 	        //Add step description to div
+	        var stepExpr = __webpack_require__(15)(evaluated.steps[i].tree);
 	        answerDiv.innerHTML += "<br />     Step " + (i + 1) + ": " + delim.open;
-	        answerDiv.innerHTML += calculation.steps[i].expr.map(function(val) { 
-	            if (calculation.steps[i].spaces.indexOf(val) > -1) {
+	        answerDiv.innerHTML += stepExpr.map(function(val) { 
+	            if (evaluated.steps[i].nodes.indexOf(val) > -1) {
 	                return delim.highlight + val.token + delim.highlightEnd;
 	            } else {
 	                return val.token; 
 	            }
-	        }.bind(calculation.steps[i])).join(' ');
+	        }).join(' ');
 
 	        //Close step description
 	        answerDiv.innerHTML += delim.close;
 	    }
 	        
 	    //Add answer to div display
-	    answerDiv.innerHTML += "<br />     Answer: " + delim.open + calculation.value.map(function(val) { return val.token; } ).join(' ') + delim.close;
+	    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (__webpack_require__(15)(evaluated.tree)).map(function(val) { return val.token; } ).join(' ') + delim.close;
 
 	    //Add div to dom and clear input box
 	    calcHistory.appendChild(answerDiv);
@@ -723,10 +735,24 @@
 	}
 
 	utility.BinaryNode = BinaryNode;
-	function BinaryNode(node, left, right) {
+	function BinaryNode(node, parent, left, right) {
 	    this.node = node;
 	    this.left = left ? left : null;
 	    this.right = right ? right : null;
+	    this.parent = parent ? parent : null;
+	}
+
+	utility.flattenTree = function flattenTree(tree, nodes, level) {
+	    if (tree.left) {
+	        flattenTree(tree.left, nodes, level + 1);
+	    }
+	    if (!nodes[level]) {
+	        nodes[level] = [];
+	    }
+	    nodes[level].push(tree);
+	    if (tree.right) {
+	        flattenTree(tree.right, nodes, level + 1);
+	    }
 	}
 
 	module.exports = utility;
@@ -1023,7 +1049,7 @@
 	            tokens[i].value = parseFloat(tokens[i].token, 10);
 	        } else if (tokens[i].type == 'variable') {
 	            //Extract power, coefficients, and symbol
-	            var match = tokens[i].token.match(/^(-?\d+(?:,\d+)*(?:\.\d+(?:e\d+)?)?)?([a-zA-Z])\^?(\d*)?$/);
+	            var match = tokens[i].token.match(/^(-?\d*(?:,\d+)*(?:\.\d+(?:e\d+)?)?)?([a-zA-Z])\^?(\d*)?$/);
 	            tokens[i].symbol = [match[2]];
 	            if (!match[1]) {
 	                tokens[i].coefficient = 1;
@@ -1167,7 +1193,10 @@
 	        } else if (token.type == 'operator') {
 	            var right = stack.pop();
 	            var left = stack.pop();
-	            stack.push(new utility.BinaryNode(token, left, right));
+	            var parent = new utility.BinaryNode(token, null, left, right);
+	            left.parent = parent;
+	            right.parent = parent;
+	            stack.push(parent);
 	        }
 
 	    }
@@ -1202,6 +1231,249 @@
 	    if (operations.hasOwnProperty(tree.node.token)) {
 	        tokens.push(new Term(')', 0, 'parenthesis'));
 	    }    
+	}
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var operations = __webpack_require__(2);
+	var utility = __webpack_require__(6);
+	var Term = __webpack_require__(5);
+	var BinaryNode = __webpack_require__(6).BinaryNode;
+	var postfixToTree = __webpack_require__(14);
+	var tokenToPostfix = __webpack_require__(13);
+
+	module.exports = function(tree) {
+	    var steps = [];
+	    var nodes = [[]];
+	    var result;
+	    var treeCopy;
+	    utility.flattenTree(tree, nodes, 0);
+	    for (var i = nodes.length - 1; i >= 0; i--) {
+	        for (var k = 0; k < nodes[i].length; k++) {
+	            for (var j = 0; j <= operations.maxPreced; j++) {
+	                var node = nodes[i][k];
+	                if (node.node.type == 'operator' && operations[node.node.token].preced == j) {
+	                    if (!operations[node.node.token].distrib) {
+	                        treeCopy = copyBranch(tree);
+	                        result = calculateNode(node, nodes);
+	                        if (result) {
+	                            tree = nodes[0][0];
+	                            steps.push({tree: treeCopy, nodes: result});
+	                            nodes = [];
+	                            utility.flattenTree(tree, nodes, 0); 
+	                            i = nodes.length - 1;
+	                            k = 0;
+	                            j = -1;                                  
+	                        }      
+	                    } else if (operations[node.node.token].distrib && operations[node.node.token].assoc == 'left') {
+	                        var lhs = [],
+	                            rhs = [];
+	                        collectSubTreeTerms(node.left, lhs);
+	                        collectSubTreeTerms(node.right, rhs);
+	                        if (lhs.length == 1 && rhs.length == 1) {
+	                            //Single node
+	                            treeCopy = copyBranch(tree);   
+	                            result = calculateNode(node, nodes);                                                     
+	                            if (result) {
+	                                tree = nodes[0][0];
+	                                steps.push({tree: treeCopy, nodes: result});
+	                                nodes = [];
+	                                utility.flattenTree(tree, nodes, 0); 
+	                                i = nodes.length - 1;
+	                                k = 0;
+	                                j = -1;                                  
+	                            }                    
+	                        } else {
+	                            //Distribution
+	                            var expr = [];
+	                            for (var leftOperand = 0; leftOperand < lhs.length; leftOperand++) {
+	                                for (var rightOperand = 0; rightOperand < rhs.length; rightOperand++) {
+	                                    if (leftOperand != 0 || rightOperand != 0) {
+	                                        expr.push(new Term('+', 0, 'operator'));
+	                                    }
+	                                    expr.push(lhs[leftOperand].node);
+	                                    expr.push(new Term('*', 0, 'operator'));
+	                                    expr.push(rhs[rightOperand].node);
+	                                }
+	                            }
+	                            var postfixExpr = tokenToPostfix(expr);
+	                            var subTree = postfixToTree(postfixExpr);
+	                            if (node.parent) {
+	                                subTree.parent = node.parent;
+	                                if (node.parent.left == node) {
+	                                    node.parent.left = subTree;
+	                                } else {
+	                                    node.parent.right = subTree;
+	                                }
+	                            } else {
+	                                tree = subTree;
+	                            }
+	                            nodes = [];
+	                            utility.flattenTree(tree, nodes, 0);
+	                            i = nodes.length - 1;
+	                            k = 0;
+	                            j = -1;
+	                        }
+	                    }
+	                }
+	            }
+	        }
+	    }
+	    return {tree: nodes[0][0], steps: steps};
+	};
+
+	function collectSubTreeTerms(tree, nodes) {
+	    if (tree.left && !operations[tree.node.token].distrib) {
+	        collectSubTreeTerms(tree.left, nodes);
+	    }
+	    if (tree.node.type == 'constant' || tree.node.type == 'variable') {
+	        nodes.push(tree);
+	    }
+	    if (tree.right && !operations[tree.node.token].distrib) {
+	        collectSubTreeTerms(tree.right, nodes);
+	    }
+	}
+
+	function calculateNode(node, nodes) {
+	    var parentNode = node.parent;
+	    var left = node.left;
+	    var right = node.right;
+	    var newTerm = operations[node.node.token].pred(left.node, right.node);
+
+	    newTerm.node = right;
+	    newTerm.fixedNode = left;
+	    newTerm.side = 'left';
+	    if (!newTerm.complete) { 
+	        newTerm = searchTerms(node.node.token, right, left, 'left');
+	    }
+	    if (!newTerm.complete) {
+	        newTerm = searchTerms(node.node.token, left, right, 'right');
+	    }
+	    if (newTerm.complete) {
+	        var replace = replaceNodes(newTerm, node);
+	        var replaced;
+	        if (replace) {
+	            nodes[0][0] = replace;
+	            replaced = [];
+	            replaced.push(node.node);
+	            replaced.push(newTerm.node.node);
+	            replaced.push(newTerm.fixedNode.node);
+	        }
+	        return replaced ? replaced : false;
+	    }
+	}
+
+	function copyBranch(branch, newTree) {
+	    if (!branch) {
+	        return branch;
+	    }
+	    var newBranch = new BinaryNode(branch.node, newTree, null, null);
+	    newBranch.left = copyBranch(branch.left, newBranch);
+	    newBranch.right = copyBranch(branch.right, newBranch);
+	    return newBranch;
+	}
+
+	function searchTerms(operator, node, fixedNode, side) {
+	    var root;
+	    var visited = [node, fixedNode];
+	    var newTerm = {complete: false};
+	    var negate = (side == 'left' ? (operator == '-' ? true : false) : false);
+	    var parent = node.parent;
+	    while (!newTerm.complete) {
+	        if (!node.parent) {
+	            if (node == root) {
+	                break;
+	            }
+	            root = node;
+	        }
+	        if (node.node.type == 'operator' && operations[node.node.token].distrib) {
+	            break;
+	        }
+	        if (node.node.type == 'operator' && node.node.token == '-' && node != parent) {
+	            negate = !negate;
+	        }
+	        if (node.left && visited.indexOf(node.left) == -1) {
+	            node = node.left;
+	            visited.push(node);
+	        } else if (node.right && visited.indexOf(node.right) == -1) {
+	            node = node.right;
+	            visited.push(node)
+	        } else if (node.parent) {
+	            //Can't go down, so go up
+	            node = node.parent;
+	            visited.push(node);
+	        }
+	        if (side == 'left') {
+	            if (negate && (node.node.type == 'constant' || node.node.type == 'variable')) {
+	                newTerm = operations[operator].pred(fixedNode.node, operations['*'].pred(node.node, new Term('-1', 0, 'constant', -1)).result);
+	            } else {
+	                newTerm = operations[operator].pred(fixedNode.node, node.node);
+	            }
+	            
+	        } else {
+	            if (negate && (node.node.type == 'constant' || node.node.type == 'variable')) {
+	                newTerm = operations[operator].pred(fixedNode.node, operations['*'].pred(node.node, new Term('-1', 0, 'constant', -1)).result);
+	            } else {
+	                newTerm = operations[operator].pred(fixedNode.node, node.node);
+	            }
+	        }
+	        
+	    }
+	    newTerm.node = node;
+	    newTerm.fixedNode = fixedNode;
+	    newTerm.side = side;
+	    return newTerm;
+	}
+
+	function replaceNodes(newTerm, parent) {
+	    //CLONE TREE HERE
+	    var newNode = new utility.BinaryNode(newTerm.result, parent, null, null);
+	    var node = newTerm.node;
+	    var fixedNode = newTerm.fixedNode;
+	    var side = newTerm.side;
+	    if (parent.parent) {
+	        parent[side] = newNode;
+	        if (node.parent && node.parent.parent) {
+	            if (node.parent.parent.left == node.parent) {
+	                if (node.parent.left == node) {
+	                    node.parent.parent.left = node.parent.right;
+	                    node.parent.right.parent = node.parent.parent;
+	                    node.parent.left = null;
+	                } else {
+	                    node.parent.parent.left = node.parent.left;
+	                    node.parent.left.parent = node.parent.parent;
+	                    node.parent.right = null;
+	                }
+	            } else {
+	                if (node.parent.left == node) {
+	                    node.parent.parent.right = node.parent.right;
+	                    node.parent.right.parent = node.parent.parent;
+	                    node.parent.left = null;
+	                } else {
+	                    node.parent.parent.right = node.parent.left;
+	                    node.parent.left.parent = node.parent.parent;
+	                    node.parent.right = null;
+	                }
+	            }
+	        } else {
+	            if (node.parent.left == node) {
+	                node.parent.right.parent = null;
+	                return node.parent.right;                
+	            } else {              
+	                node.parent.left.parent = null;
+	                return node.parent.left;                
+	            }
+	        }
+	    } else {
+	        return newNode;
+	    }
+	    var root = newNode;
+	    while (root.parent) {
+	        root = root.parent;
+	    } 
+	    return root;
 	}
 
 /***/ }

@@ -11,7 +11,10 @@ module.exports = function(queue) {
         } else if (token.type == 'operator') {
             var right = stack.pop();
             var left = stack.pop();
-            stack.push(new utility.BinaryNode(token, left, right));
+            var parent = new utility.BinaryNode(token, null, left, right);
+            left.parent = parent;
+            right.parent = parent;
+            stack.push(parent);
         }
 
     }

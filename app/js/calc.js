@@ -48,12 +48,23 @@ var calculate = function() {
     answerDiv.className = 'solution ' + solutionCount;
 
     //TESTING
+    console.log('Expression:');
+    console.log(tokenArray.map(function(val){return val.token}).join(' '));
     var postfix = (require('./algebra/tokenToPostfix.js')(tokenArray.slice()));
+    console.log('Postfixed value:');
     console.log(postfix.map(function(val){return val.token;}).join(' '));
     var binaryTree = (require('./algebra/postfixToBinaryTree.js')(postfix.slice()));
+    console.log('Binary tree:');
     console.dir(binaryTree);
     var tokenizedArray = (require('./algebra/binaryTreeToTokenizedArray.js')(binaryTree));
+    console.log('Back to tokenized array:');
     console.log(tokenizedArray.map(function(val){return val.token}).join(' '));
+    var evaluated = (require('./algebra/evaluateBinaryTree.js')(binaryTree));
+    //console.log('Flattened tree:');
+    //console.dir(flattenedTree);
+    //var evaluated = (require('./algebra/binaryTreeToTokenizedArray')(flattenedTree));
+    console.log('Evaluated tree:');
+    //console.log(evaluated.map(function(val){return val.token}).join(' '));
 
     //Create and add expression and RPN string
     answerDiv.innerHTML += "<br />Expression: " + delim.open + tokenArray.map(function(val) { 
@@ -61,25 +72,26 @@ var calculate = function() {
         }).join(' ') + delim.close;
     
     //Perform calculation
-    var calculation = calculateVal(expr);
+    //var calculation = calculateVal(expr);
     //Iterate through steps
-    for(var i = 0; i < calculation.steps.length; i++) {
+    for(var i = 0; i < evaluated.steps.length; i++) {
         //Add step description to div
+        var stepExpr = require('./algebra/binaryTreeToTokenizedArray.js')(evaluated.steps[i].tree);
         answerDiv.innerHTML += "<br />     Step " + (i + 1) + ": " + delim.open;
-        answerDiv.innerHTML += calculation.steps[i].expr.map(function(val) { 
-            if (calculation.steps[i].spaces.indexOf(val) > -1) {
+        answerDiv.innerHTML += stepExpr.map(function(val) { 
+            if (evaluated.steps[i].nodes.indexOf(val) > -1) {
                 return delim.highlight + val.token + delim.highlightEnd;
             } else {
                 return val.token; 
             }
-        }.bind(calculation.steps[i])).join(' ');
+        }).join(' ');
 
         //Close step description
         answerDiv.innerHTML += delim.close;
     }
         
     //Add answer to div display
-    answerDiv.innerHTML += "<br />     Answer: " + delim.open + calculation.value.map(function(val) { return val.token; } ).join(' ') + delim.close;
+    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (require('./algebra/binaryTreeToTokenizedArray.js')(evaluated.tree)).map(function(val) { return val.token; } ).join(' ') + delim.close;
 
     //Add div to dom and clear input box
     calcHistory.appendChild(answerDiv);

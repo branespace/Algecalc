@@ -21,10 +21,24 @@ utility.sortArraysTogether = function (a, b, predicate) {
 }
 
 utility.BinaryNode = BinaryNode;
-function BinaryNode(node, left, right) {
+function BinaryNode(node, parent, left, right) {
     this.node = node;
     this.left = left ? left : null;
     this.right = right ? right : null;
+    this.parent = parent ? parent : null;
+}
+
+utility.flattenTree = function flattenTree(tree, nodes, level) {
+    if (tree.left) {
+        flattenTree(tree.left, nodes, level + 1);
+    }
+    if (!nodes[level]) {
+        nodes[level] = [];
+    }
+    nodes[level].push(tree);
+    if (tree.right) {
+        flattenTree(tree.right, nodes, level + 1);
+    }
 }
 
 module.exports = utility;
