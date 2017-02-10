@@ -96,16 +96,16 @@
 	    //TESTING
 	    console.log('Expression:');
 	    console.log(tokenArray.map(function(val){return val.token}).join(' '));
-	    var postfix = (__webpack_require__(13)(tokenArray.slice()));
+	    var postfix = (__webpack_require__(14)(tokenArray.slice()));
 	    console.log('Postfixed value:');
 	    console.log(postfix.map(function(val){return val.token;}).join(' '));
-	    var binaryTree = (__webpack_require__(14)(postfix.slice()));
+	    var binaryTree = (__webpack_require__(15)(postfix.slice()));
 	    console.log('Binary tree:');
 	    console.dir(binaryTree);
-	    var tokenizedArray = (__webpack_require__(15)(binaryTree));
+	    var tokenizedArray = (__webpack_require__(16)(binaryTree));
 	    console.log('Back to tokenized array:');
 	    console.log(tokenizedArray.map(function(val){return val.token}).join(' '));
-	    var evaluated = (__webpack_require__(16)(binaryTree));
+	    var evaluated = (__webpack_require__(17)(binaryTree));
 	    //console.log('Flattened tree:');
 	    //console.dir(flattenedTree);
 	    //var evaluated = (require('./algebra/binaryTreeToTokenizedArray')(flattenedTree));
@@ -122,22 +122,16 @@
 	    //Iterate through steps
 	    for(var i = 0; i < evaluated.steps.length; i++) {
 	        //Add step description to div
-	        var stepExpr = __webpack_require__(15)(evaluated.steps[i].tree);
+	        var stepExpr = __webpack_require__(16)(evaluated.steps[i].tree);
 	        answerDiv.innerHTML += "<br />     Step " + (i + 1) + ": " + delim.open;
-	        answerDiv.innerHTML += stepExpr.map(function(val) { 
-	            if (evaluated.steps[i].nodes.indexOf(val) > -1) {
-	                return delim.highlight + val.token + delim.highlightEnd;
-	            } else {
-	                return val.token; 
-	            }
-	        }).join(' ');
+	        answerDiv.innerHTML += stepExpr.map(tidyExpr.bind(evaluated.steps[i].nodes)).join(' ');
 
 	        //Close step description
 	        answerDiv.innerHTML += delim.close;
 	    }
 	        
 	    //Add answer to div display
-	    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (__webpack_require__(15)(evaluated.tree)).map(function(val) { return val.token; } ).join(' ') + delim.close;
+	    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (__webpack_require__(16)(evaluated.tree)).map(tidyExpr.bind([])).join(' ') + delim.close;
 
 	    //Add div to dom and clear input box
 	    calcHistory.appendChild(answerDiv);
@@ -548,6 +542,67 @@
 	  };
 	}
 
+	function tidyExpr(val, index, arr) {
+	    var tokenOut, negate;
+	    //if (val.token == '-') {
+	    //    val.token = '+';
+	    //}
+	    tokenOut = val.token;
+
+	    if (val.type == 'operator' && val.token == '+')  {
+	        if (arr.length > index + 1) {
+	            if (arr[index + 1].type == 'constant') {
+	                if (arr[index + 1].value < 0) {
+	                    arr[index + 1].value = 0 - arr[index + 1].value;
+	                    arr[index + 1].genToken(); 
+	                    arr[index + 1].flip = true;
+	                    tokenOut = '-';
+	                }
+	            } else if (arr[index + 1].type == 'variable') {
+	                if (arr[index + 1].coefficient < 0) {
+	                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
+	                    arr[index + 1].genToken();
+	                    arr[index + 1].flip = true;
+	                    tokenOut = '-';
+	                }
+	            }
+	        }
+	    } else if (val.type == 'operator' && val.token == '-')  {
+	        if (arr.length > index + 1) {
+	            if (arr[index + 1].type == 'constant') {
+	                if (arr[index + 1].value < 0) {
+	                    arr[index + 1].value = 0 - arr[index + 1].value;
+	                    arr[index + 1].genToken(); 
+	                    arr[index + 1].flip = true;
+	                    tokenOut = '+';
+	                }
+	            } else if (arr[index + 1].type == 'variable') {
+	                if (arr[index + 1].coefficient < 0) {
+	                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
+	                    arr[index + 1].genToken();
+	                    arr[index + 1].flip = true;
+	                    tokenOut = '+';
+	                }
+	            }
+	        }
+	    }
+	    if (val.hasOwnProperty('flip') && val.flip) {
+	        if (val.type == 'constant') {
+	            val.value = 0 - val.value;
+	            val.genToken(); 
+	            val.flip = false;
+	        } else if (val.type == 'variable') {
+	            val.coefficient = 0 - val.coefficient;
+	            val.genToken();
+	            val.flip = false;
+	        }       
+	    }
+	    if (this.indexOf(val) > -1) {
+	        tokenOut = delim.highlight + tokenOut + delim.highlightEnd;
+	        this.splice(this.indexOf(val), 1);
+	    } 
+	    return tokenOut;
+	}
 
 /***/ },
 /* 1 */
@@ -957,6 +1012,8 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var operations = __webpack_require__(2);
+	var Term = __webpack_require__(5);
+	var Terms = __webpack_require__(13);
 
 	//Takes in text and turns it into tokens for RPN processing
 	module.exports = function(text) {
@@ -974,11 +1031,11 @@
 	        if (token == '-' && !builder.length && ( i == 0 || (tokens.length && (isOperator(tokens[tokens.length - 1].token) || (tokens[tokens.length - 1].type == 'parenthesis'))))) {
 	            //If it is a negative sign and not subtraction, add to our number builder
 	            if (tokens.length && tokens[tokens.length - 1].token == ')') {
-	                tokens.push({token: '+', type: 'operator', parenLevel: parenLevel});                    
+	                tokens.push(new Term('+', 0, 'operator'));                    
 	            }
 	            if (i < text.length - 1 && text[i + 1] == '(') {
-	                tokens.push({token: '-1', type: 'constant', value: '-1', parenLevel: parenLevel});
-	                tokens.push({token: '*', type: 'operator', parenLevel: parenLevel + 1});                
+	                tokens.push(new Term('-1', 0, 'constant', -1));
+	                tokens.push(new Term('*', 0, 'operator'));                
 	            } else {
 	                builder += token;
 	            }
@@ -989,7 +1046,7 @@
 	        } else if (isOperator(token)) {
 	            //Add existing number from builder to tokens, checking type of token
 	            if (builder.length) {
-	                tokens.push({token: builder, count: tokens.length, type: getTokenType(builder), parenLevel: parenLevel});
+	                tokens.push(Terms.fromToken(builder, 0));
 	            }
 	            //Clear token builder
 	            builder = '';
@@ -997,12 +1054,12 @@
 	            
 	            if (token == '-' && i < text.length - 1 && text[ i + 1 ] == '(') {
 	                if (tokens.length) {
-	                    tokens.push({token: '+', type: 'operator', parenLevel: parenLevel});
+	                    tokens.push(new Term('+', 0, 'operator'));
 	                }
-	                tokens.push({token: '-1', type: 'constant', value: '-1', parenLevel: parenLevel});
-	                tokens.push({token: '*', type: 'operator', parenLevel: parenLevel + 1});
+	                tokens.push(new Term('-1', 0, 'constant', -1));
+	                tokens.push(new Term('*', 0, 'operator'));
 	            } else {
-	                tokens.push({token: token, count: tokens.length, type: 'operator', parenLevel: parenLevel});
+	                tokens.push(new Term(token, 0, 'operator'));
 	            }
 	        //If we have a number or letter...
 	        } else if (isAlpha(token) || token == '.') {
@@ -1012,38 +1069,51 @@
 	        } else if (token == '(') {
 	            //If we have anything in our buffer, add it with multiplication
 	            if (builder.length) {
-	                tokens.push({token: builder, count: tokens.length, type: getTokenType(builder), parenLevel: parenLevel});
+	                tokens.push(Terms.fromToken(builder, 0));
 	                builder = '';
-	                tokens.push({token: '*', count: tokens.length, type: 'operator', parenLevel: parenLevel + 1});
+	                tokens.push(new Term('*', 0, 'operator'));
 	            } else if (tokens.length && tokens[tokens.length - 1].token == ')') {
-	                tokens.push({token: '*', count: tokens.length, type: 'operator', parenLevel: parenLevel});
+	                tokens.push(new Term('*', 0, 'operator'));
 	            }
 
 	            //Increment parenlevel
 	            parenLevel++;
-	            tokens.push({token: '(', count: tokens.length, type: 'parenthesis', parenLevel: parenLevel});
+	            tokens.push(new Term('(', 0, 'parenthesis'));
 	        //On closee parentheses, check for builder content first
 	        } else if (token == ')') {
 	            //If we have stuff in the builder, flush it to the token list and then add the parenthesis
 	            if (builder.length) {
-	                tokens.push({token: builder, count: tokens.length, type: getTokenType(builder), parenLevel: parenLevel});
+	                tokens.push(Terms.fromToken(builder, 0));
 	                builder = '';
 	            }
-	            tokens.push({token: ')', count: tokens.length, type: 'parenthesis', parenLevel: parenLevel});
+	            tokens.push(new Term(')', 0, 'parenthesis'));
 	            //Now decrement parenlevel
 	            parenLevel--;
 	            if (i < text.length - 1 && isAlpha(text[i + 1])) {
-	                tokens.push({token: '*', count: tokens.length, type: 'operator', parenLevel: parenLevel});
+	                tokens.push(new Term('*', 0, 'operator'));
 	            }
 	        }
 	    }
 
 	    //Finished with tokens, so if we have anything left in the builder, flush to tokens
 	    if (builder.length) {
-	        tokens.push({token: builder, count: tokens.length, type: getTokenType(builder), parenLevel: parenLevel});
+	        tokens.push(Terms.fromToken(builder));
+	    }
+
+	    for (var i = 0; i < tokens.length - 2; i++) {
+	        if (tokens[i].type == 'operator' && tokens[i].token == '-') {
+	            if (tokens[i + 1].type == 'constant') {
+	                tokens[i + 1].value = 0 - tokens[i + 1].value;
+	            } else if (tokens[i + 1].type == 'variable') {
+	                tokens[i + 1].coefficient = 0 - tokens[i + 1].coefficient;
+	            }
+	            tokens[i + 1].genToken();
+	            tokens[i].token = '+';
+	        }
 	    }
 
 	    //Iterate tokens and look for variables, to separate coefficients and symbols
+	    /*
 	    for (var i = 0; i < tokens.length; i++) {
 	        if (tokens[i].type == 'constant') {
 	            tokens[i].value = parseFloat(tokens[i].token, 10);
@@ -1064,6 +1134,7 @@
 	            }
 	        }
 	    }
+	    */
 	    //Send token array back
 	    return tokens;
 	};
@@ -1125,6 +1196,72 @@
 /* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var operations = __webpack_require__(2);
+	var utility = __webpack_require__(6);
+	var Term = __webpack_require__(5);
+
+	var Terms = {};
+
+	module.exports = Terms;
+
+	Terms.fromToken = function(token, parenLevel) {
+	    var term;
+
+	    if (operations.hasOwnProperty(token)) {
+	        term = new Term(token, parenLevel, 'operator');
+	    } else if (token == '(' || token == ')') {
+	        term = new Term(token, parenLevel, 'parenthesis');
+	    } else {
+	        var match = token.trim().match(/^(-?)(\d*),?(\d+)(\.)?(\d*)(e?)(\d*)?$/);
+	        if (match) {
+	            var tokenBuilder = '';
+	            for (var i = 1; i < match.length; i++) {
+	                tokenBuilder += match[i] ? match[i] : '';
+	            }
+	            var value = parseFloat(tokenBuilder, 10);
+	            term = new Term(token, parenLevel, 'constant', value);
+	        } else {
+	            match = token.trim().match(/^(-?)(\d*),?(\d+)?(\.)?(\d*)(e?)(\d*)?([a-zA-Z])\^?(\d*)?/);
+	            if (match) { 
+	                var tokenBuilder = '';
+	                var symbol = [];
+	                var power = [];
+	                for (var i = 1; i < 7; i++) {
+	                    tokenBuilder += match[i] ? match[i] : '';
+	                }
+	                var coefficient;
+	                if (tokenBuilder.length == 0) {
+	                    coefficient = 1;
+	                } else {
+	                    coefficient = (tokenBuilder == '-' ? -1 : parseFloat(tokenBuilder, 10));
+	                }
+	                if (coefficient == 0 ) {
+	                    term = new Term('0', parenLevel, 'constant', 0);
+	                } else {
+	                    symbol.push(match[8]);
+	                    power.push(match[9] ? parseFloat(match[9], 10) : 1);
+	                    var remaining = /([a-zA-Z])\^?(\d*)/g,
+	                        match;
+	                    while ((match = remaining.exec(token)) != null) {
+	                        if (match[1] != symbol[0] && (match[2] ? match[2] != 0 : true)) {
+	                            symbol.push(match[1]);
+	                            power.push(match[2] ? parseFloat(match[2], 10) : 1);
+	                        }
+	                    }
+	                    var sortedArrays = utility.sortArraysTogether(symbol, power);
+	                    term = new Term(tokenBuilder, parenLevel, 'variable', coefficient, sortedArrays.a, sortedArrays.b);
+	                }
+	            }
+	        }
+	    }
+	    
+	    return term;   
+	};
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
 	//Based on the Shunting Yard Algorithm - Dijkstra
 	var operations = __webpack_require__(2);
 
@@ -1177,7 +1314,7 @@
 	};
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var utility = __webpack_require__(6);
@@ -1205,7 +1342,7 @@
 	};
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Term = __webpack_require__(5);
@@ -1214,7 +1351,11 @@
 	module.exports = function(tree) {
 	    var tokens = [];
 	    infixTraverse(tree, tokens);
-	    return tokens;
+
+	    if (tokens.length == 1) {
+	        return tokens;
+	    }
+	    return tokens.slice(1, -1);
 	}
 
 	function infixTraverse(tree, tokens) {
@@ -1234,15 +1375,15 @@
 	}
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var operations = __webpack_require__(2);
 	var utility = __webpack_require__(6);
 	var Term = __webpack_require__(5);
 	var BinaryNode = __webpack_require__(6).BinaryNode;
-	var postfixToTree = __webpack_require__(14);
-	var tokenToPostfix = __webpack_require__(13);
+	var postfixToTree = __webpack_require__(15);
+	var tokenToPostfix = __webpack_require__(14);
 
 	module.exports = function(tree) {
 	    var steps = [];
@@ -1293,6 +1434,14 @@
 	                                    if (leftOperand != 0 || rightOperand != 0) {
 	                                        expr.push(new Term('+', 0, 'operator'));
 	                                    }
+	                                    if (lhs[leftOperand].neg) {
+	                                        lhs[leftOperand] = operations['*'].pred(lhs[leftOperand], new Term('-1', 0, 'constant', -1));
+	                                        lhs[leftOperand].neg = false;
+	                                    }
+	                                    if (rhs[rightOperand].neg) {
+	                                        rhs[rightOperand] = operations['*'].pred(rhs[rightOperand], new Term('-1', 0, 'constant', -1));
+	                                        rhs[rightOperand].neg = false
+	                                    }                                    
 	                                    expr.push(lhs[leftOperand].node);
 	                                    expr.push(new Term('*', 0, 'operator'));
 	                                    expr.push(rhs[rightOperand].node);
@@ -1324,15 +1473,22 @@
 	    return {tree: nodes[0][0], steps: steps};
 	};
 
-	function collectSubTreeTerms(tree, nodes) {
+	function collectSubTreeTerms(tree, nodes, negate) {
+	    negate = negate || false;
 	    if (tree.left && !operations[tree.node.token].distrib) {
-	        collectSubTreeTerms(tree.left, nodes);
+	        collectSubTreeTerms(tree.left, nodes, negate);
 	    }
 	    if (tree.node.type == 'constant' || tree.node.type == 'variable') {
+	        if (negate) {
+	            tree.neg = true;
+	        }
 	        nodes.push(tree);
 	    }
+	    if (tree.node.type == 'operator' && tree.node.token == '-') {
+	        negate = !negate;
+	    }
 	    if (tree.right && !operations[tree.node.token].distrib) {
-	        collectSubTreeTerms(tree.right, nodes);
+	        collectSubTreeTerms(tree.right, nodes, negate);
 	    }
 	}
 
@@ -1381,6 +1537,9 @@
 	    var newTerm = {complete: false};
 	    var negate = (side == 'left' ? (operator == '-' ? true : false) : false);
 	    var parent = node.parent;
+	    var start = node;
+	    var searchSide = 'left', 
+	        above = false;
 	    while (!newTerm.complete) {
 	        if (!node.parent) {
 	            if (node == root) {
@@ -1403,23 +1562,34 @@
 	        } else if (node.parent) {
 	            //Can't go down, so go up
 	            node = node.parent;
+	            if (node == start && !above) {
+	                searchSide = 'right';
+	                above = true;
+	            } else if (node == start && above) {
+	                if (start.parent.left == start) {
+	                    searchSide = 'right';
+	                } else {
+	                    searchSide = 'left'
+	                }
+	            }
 	            visited.push(node);
 	        }
-	        if (side == 'left') {
+	        if (searchSide == 'right') {
+	            console.log(fixedNode.node.token + ' ' + operator + ' ' + node.node.token)   
 	            if (negate && (node.node.type == 'constant' || node.node.type == 'variable')) {
 	                newTerm = operations[operator].pred(fixedNode.node, operations['*'].pred(node.node, new Term('-1', 0, 'constant', -1)).result);
 	            } else {
 	                newTerm = operations[operator].pred(fixedNode.node, node.node);
 	            }
-	            
 	        } else {
+	            console.log(fixedNode.node.token + ' ' + operator + ' ' + node.node.token)            
 	            if (negate && (node.node.type == 'constant' || node.node.type == 'variable')) {
-	                newTerm = operations[operator].pred(fixedNode.node, operations['*'].pred(node.node, new Term('-1', 0, 'constant', -1)).result);
+	                newTerm = operations[operator].pred(node.node, operations['*'].pred(fixedNode.node, new Term('-1', 0, 'constant', -1)).result);
 	            } else {
-	                newTerm = operations[operator].pred(fixedNode.node, node.node);
+	                newTerm = operations[operator].pred(node.node, fixedNode.node);
 	            }
 	        }
-	        
+	        newTerm.side = side;
 	    }
 	    newTerm.node = node;
 	    newTerm.fixedNode = fixedNode;

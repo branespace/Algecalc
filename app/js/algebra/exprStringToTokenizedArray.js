@@ -1,4 +1,6 @@
 var operations = require('./operations/operations');
+var Term = require('./terms/term.js');
+var Terms = require('./terms/terms.js');
 
 //Takes in text and turns it into tokens for RPN processing
 module.exports = function(text) {
@@ -16,11 +18,11 @@ module.exports = function(text) {
         if (token == '-' && !builder.length && ( i == 0 || (tokens.length && (isOperator(tokens[tokens.length - 1].token) || (tokens[tokens.length - 1].type == 'parenthesis'))))) {
             //If it is a negative sign and not subtraction, add to our number builder
             if (tokens.length && tokens[tokens.length - 1].token == ')') {
-                tokens.push({token: '+', type: 'operator', parenLevel: parenLevel});                    
+                tokens.push(new Term('+', 0, 'operator'));                    
             }
             if (i < text.length - 1 && text[i + 1] == '(') {
-                tokens.push({token: '-1', type: 'constant', value: '-1', parenLevel: parenLevel});
-                tokens.push({token: '*', type: 'operator', parenLevel: parenLevel + 1});                
+                tokens.push(new Term('-1', 0, 'constant', -1));
+                tokens.push(new Term('*', 0, 'operator'));                
             } else {
                 builder += token;
             }
@@ -31,7 +33,7 @@ module.exports = function(text) {
         } else if (isOperator(token)) {
             //Add existing number from builder to tokens, checking type of token
             if (builder.length) {
-                tokens.push({token: builder, count: tokens.length, type: getTokenType(builder), parenLevel: parenLevel});
+                tokens.push(Terms.fromToken(builder, 0));
             }
             //Clear token builder
             builder = '';
@@ -39,12 +41,12 @@ module.exports = function(text) {
             
             if (token == '-' && i < text.length - 1 && text[ i + 1 ] == '(') {
                 if (tokens.length) {
-                    tokens.push({token: '+', type: 'operator', parenLevel: parenLevel});
+                    tokens.push(new Term('+', 0, 'operator'));
                 }
-                tokens.push({token: '-1', type: 'constant', value: '-1', parenLevel: parenLevel});
-                tokens.push({token: '*', type: 'operator', parenLevel: parenLevel + 1});
+                tokens.push(new Term('-1', 0, 'constant', -1));
+                tokens.push(new Term('*', 0, 'operator'));
             } else {
-                tokens.push({token: token, count: tokens.length, type: 'operator', parenLevel: parenLevel});
+                tokens.push(new Term(token, 0, 'operator'));
             }
         //If we have a number or letter...
         } else if (isAlpha(token) || token == '.') {
@@ -54,38 +56,51 @@ module.exports = function(text) {
         } else if (token == '(') {
             //If we have anything in our buffer, add it with multiplication
             if (builder.length) {
-                tokens.push({token: builder, count: tokens.length, type: getTokenType(builder), parenLevel: parenLevel});
+                tokens.push(Terms.fromToken(builder, 0));
                 builder = '';
-                tokens.push({token: '*', count: tokens.length, type: 'operator', parenLevel: parenLevel + 1});
+                tokens.push(new Term('*', 0, 'operator'));
             } else if (tokens.length && tokens[tokens.length - 1].token == ')') {
-                tokens.push({token: '*', count: tokens.length, type: 'operator', parenLevel: parenLevel});
+                tokens.push(new Term('*', 0, 'operator'));
             }
 
             //Increment parenlevel
             parenLevel++;
-            tokens.push({token: '(', count: tokens.length, type: 'parenthesis', parenLevel: parenLevel});
+            tokens.push(new Term('(', 0, 'parenthesis'));
         //On closee parentheses, check for builder content first
         } else if (token == ')') {
             //If we have stuff in the builder, flush it to the token list and then add the parenthesis
             if (builder.length) {
-                tokens.push({token: builder, count: tokens.length, type: getTokenType(builder), parenLevel: parenLevel});
+                tokens.push(Terms.fromToken(builder, 0));
                 builder = '';
             }
-            tokens.push({token: ')', count: tokens.length, type: 'parenthesis', parenLevel: parenLevel});
+            tokens.push(new Term(')', 0, 'parenthesis'));
             //Now decrement parenlevel
             parenLevel--;
             if (i < text.length - 1 && isAlpha(text[i + 1])) {
-                tokens.push({token: '*', count: tokens.length, type: 'operator', parenLevel: parenLevel});
+                tokens.push(new Term('*', 0, 'operator'));
             }
         }
     }
 
     //Finished with tokens, so if we have anything left in the builder, flush to tokens
     if (builder.length) {
-        tokens.push({token: builder, count: tokens.length, type: getTokenType(builder), parenLevel: parenLevel});
+        tokens.push(Terms.fromToken(builder));
+    }
+
+    for (var i = 0; i < tokens.length - 2; i++) {
+        if (tokens[i].type == 'operator' && tokens[i].token == '-') {
+            if (tokens[i + 1].type == 'constant') {
+                tokens[i + 1].value = 0 - tokens[i + 1].value;
+            } else if (tokens[i + 1].type == 'variable') {
+                tokens[i + 1].coefficient = 0 - tokens[i + 1].coefficient;
+            }
+            tokens[i + 1].genToken();
+            tokens[i].token = '+';
+        }
     }
 
     //Iterate tokens and look for variables, to separate coefficients and symbols
+    /*
     for (var i = 0; i < tokens.length; i++) {
         if (tokens[i].type == 'constant') {
             tokens[i].value = parseFloat(tokens[i].token, 10);
@@ -106,6 +121,7 @@ module.exports = function(text) {
             }
         }
     }
+    */
     //Send token array back
     return tokens;
 };

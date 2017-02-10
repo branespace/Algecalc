@@ -54,6 +54,14 @@ module.exports = function(tree) {
                                     if (leftOperand != 0 || rightOperand != 0) {
                                         expr.push(new Term('+', 0, 'operator'));
                                     }
+                                    if (lhs[leftOperand].neg) {
+                                        lhs[leftOperand] = operations['*'].pred(lhs[leftOperand], new Term('-1', 0, 'constant', -1));
+                                        lhs[leftOperand].neg = false;
+                                    }
+                                    if (rhs[rightOperand].neg) {
+                                        rhs[rightOperand] = operations['*'].pred(rhs[rightOperand], new Term('-1', 0, 'constant', -1));
+                                        rhs[rightOperand].neg = false
+                                    }                                    
                                     expr.push(lhs[leftOperand].node);
                                     expr.push(new Term('*', 0, 'operator'));
                                     expr.push(rhs[rightOperand].node);
@@ -85,15 +93,22 @@ module.exports = function(tree) {
     return {tree: nodes[0][0], steps: steps};
 };
 
-function collectSubTreeTerms(tree, nodes) {
+function collectSubTreeTerms(tree, nodes, negate) {
+    negate = negate || false;
     if (tree.left && !operations[tree.node.token].distrib) {
-        collectSubTreeTerms(tree.left, nodes);
+        collectSubTreeTerms(tree.left, nodes, negate);
     }
     if (tree.node.type == 'constant' || tree.node.type == 'variable') {
+        if (negate) {
+            tree.neg = true;
+        }
         nodes.push(tree);
     }
+    if (tree.node.type == 'operator' && tree.node.token == '-') {
+        negate = !negate;
+    }
     if (tree.right && !operations[tree.node.token].distrib) {
-        collectSubTreeTerms(tree.right, nodes);
+        collectSubTreeTerms(tree.right, nodes, negate);
     }
 }
 
@@ -142,6 +157,9 @@ function searchTerms(operator, node, fixedNode, side) {
     var newTerm = {complete: false};
     var negate = (side == 'left' ? (operator == '-' ? true : false) : false);
     var parent = node.parent;
+    var start = node;
+    var searchSide = 'left', 
+        above = false;
     while (!newTerm.complete) {
         if (!node.parent) {
             if (node == root) {
@@ -164,23 +182,34 @@ function searchTerms(operator, node, fixedNode, side) {
         } else if (node.parent) {
             //Can't go down, so go up
             node = node.parent;
+            if (node == start && !above) {
+                searchSide = 'right';
+                above = true;
+            } else if (node == start && above) {
+                if (start.parent.left == start) {
+                    searchSide = 'right';
+                } else {
+                    searchSide = 'left'
+                }
+            }
             visited.push(node);
         }
-        if (side == 'left') {
+        if (searchSide == 'right') {
+            console.log(fixedNode.node.token + ' ' + operator + ' ' + node.node.token)   
             if (negate && (node.node.type == 'constant' || node.node.type == 'variable')) {
                 newTerm = operations[operator].pred(fixedNode.node, operations['*'].pred(node.node, new Term('-1', 0, 'constant', -1)).result);
             } else {
                 newTerm = operations[operator].pred(fixedNode.node, node.node);
             }
-            
         } else {
+            console.log(fixedNode.node.token + ' ' + operator + ' ' + node.node.token)            
             if (negate && (node.node.type == 'constant' || node.node.type == 'variable')) {
-                newTerm = operations[operator].pred(fixedNode.node, operations['*'].pred(node.node, new Term('-1', 0, 'constant', -1)).result);
+                newTerm = operations[operator].pred(node.node, operations['*'].pred(fixedNode.node, new Term('-1', 0, 'constant', -1)).result);
             } else {
-                newTerm = operations[operator].pred(fixedNode.node, node.node);
+                newTerm = operations[operator].pred(node.node, fixedNode.node);
             }
         }
-        
+        newTerm.side = side;
     }
     newTerm.node = node;
     newTerm.fixedNode = fixedNode;

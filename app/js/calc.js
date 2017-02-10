@@ -78,20 +78,14 @@ var calculate = function() {
         //Add step description to div
         var stepExpr = require('./algebra/binaryTreeToTokenizedArray.js')(evaluated.steps[i].tree);
         answerDiv.innerHTML += "<br />     Step " + (i + 1) + ": " + delim.open;
-        answerDiv.innerHTML += stepExpr.map(function(val) { 
-            if (evaluated.steps[i].nodes.indexOf(val) > -1) {
-                return delim.highlight + val.token + delim.highlightEnd;
-            } else {
-                return val.token; 
-            }
-        }).join(' ');
+        answerDiv.innerHTML += stepExpr.map(tidyExpr.bind(evaluated.steps[i].nodes)).join(' ');
 
         //Close step description
         answerDiv.innerHTML += delim.close;
     }
         
     //Add answer to div display
-    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (require('./algebra/binaryTreeToTokenizedArray.js')(evaluated.tree)).map(function(val) { return val.token; } ).join(' ') + delim.close;
+    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (require('./algebra/binaryTreeToTokenizedArray.js')(evaluated.tree)).map(tidyExpr.bind([])).join(' ') + delim.close;
 
     //Add div to dom and clear input box
     calcHistory.appendChild(answerDiv);
@@ -500,4 +494,66 @@ if (typeof Object.assign != 'function') {
     }
     return to;
   };
+}
+
+function tidyExpr(val, index, arr) {
+    var tokenOut, negate;
+    //if (val.token == '-') {
+    //    val.token = '+';
+    //}
+    tokenOut = val.token;
+
+    if (val.type == 'operator' && val.token == '+')  {
+        if (arr.length > index + 1) {
+            if (arr[index + 1].type == 'constant') {
+                if (arr[index + 1].value < 0) {
+                    arr[index + 1].value = 0 - arr[index + 1].value;
+                    arr[index + 1].genToken(); 
+                    arr[index + 1].flip = true;
+                    tokenOut = '-';
+                }
+            } else if (arr[index + 1].type == 'variable') {
+                if (arr[index + 1].coefficient < 0) {
+                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
+                    arr[index + 1].genToken();
+                    arr[index + 1].flip = true;
+                    tokenOut = '-';
+                }
+            }
+        }
+    } else if (val.type == 'operator' && val.token == '-')  {
+        if (arr.length > index + 1) {
+            if (arr[index + 1].type == 'constant') {
+                if (arr[index + 1].value < 0) {
+                    arr[index + 1].value = 0 - arr[index + 1].value;
+                    arr[index + 1].genToken(); 
+                    arr[index + 1].flip = true;
+                    tokenOut = '+';
+                }
+            } else if (arr[index + 1].type == 'variable') {
+                if (arr[index + 1].coefficient < 0) {
+                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
+                    arr[index + 1].genToken();
+                    arr[index + 1].flip = true;
+                    tokenOut = '+';
+                }
+            }
+        }
+    }
+    if (val.hasOwnProperty('flip') && val.flip) {
+        if (val.type == 'constant') {
+            val.value = 0 - val.value;
+            val.genToken(); 
+            val.flip = false;
+        } else if (val.type == 'variable') {
+            val.coefficient = 0 - val.coefficient;
+            val.genToken();
+            val.flip = false;
+        }       
+    }
+    if (this.indexOf(val) > -1) {
+        tokenOut = delim.highlight + tokenOut + delim.highlightEnd;
+        this.splice(this.indexOf(val), 1);
+    } 
+    return tokenOut;
 }

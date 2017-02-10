@@ -4,7 +4,11 @@ var operations = require('./operations/operations');
 module.exports = function(tree) {
     var tokens = [];
     infixTraverse(tree, tokens);
-    return tokens;
+
+    if (tokens.length == 1) {
+        return tokens;
+    }
+    return tokens.slice(1, -1);
 }
 
 function infixTraverse(tree, tokens) {
