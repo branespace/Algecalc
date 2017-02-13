@@ -41,4 +41,11 @@ utility.flattenTree = function flattenTree(tree, nodes, level) {
     }
 }
 
+utility.treeDepth = function treeDepth(tree, depth) {
+    depth = depth || 0;
+    var left = tree.left ? utility.treeDepth(tree.left, depth + 1) : 0;
+    var right = tree.right ? utility.treeDepth(tree.right, depth + 1) : 0;
+    return Math.max(left, right, depth);
+}
+
 module.exports = utility;

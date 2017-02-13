@@ -99,80 +99,13 @@ module.exports = function(text) {
         }
     }
 
-    //Iterate tokens and look for variables, to separate coefficients and symbols
-    /*
-    for (var i = 0; i < tokens.length; i++) {
-        if (tokens[i].type == 'constant') {
-            tokens[i].value = parseFloat(tokens[i].token, 10);
-        } else if (tokens[i].type == 'variable') {
-            //Extract power, coefficients, and symbol
-            var match = tokens[i].token.match(/^(-?\d*(?:,\d+)*(?:\.\d+(?:e\d+)?)?)?([a-zA-Z])\^?(\d*)?$/);
-            tokens[i].symbol = [match[2]];
-            if (!match[1]) {
-                tokens[i].coefficient = 1;
-            //Standard case, explicit coefficient
-            } else {
-                tokens[i].coefficient = (match[1] == '-' ? -1 : parseFloat(match[1], 10));
-            }
-            if (match[3]) {
-                tokens[i].power = [match[3]];
-            } else {
-                tokens[i].power = [1];
-            }
-        }
-    }
-    */
     //Send token array back
     return tokens;
 };
 
-//Checks to see if the value is a decimal number
-function isNumber(text) {
-        /* ^        beginning of line
-           -?       optional negative sign
-           \d+      one or more digits
-           (,\d+)*  optional allowance for commas as thousands seperators
-            (\.      decimal seperator
-            \d+      one or more digits
-             (e       exponentiation
-              \d+      exponent digits
-             )?       is optional (exponent)
-            )?       is optional (decimal)
-           $        end of line
-        */
-    return text.trim().search(/^-?\d+(,\d+)*(\.\d+(e\d+)?)?$/) > -1;
-}
-
 //Checks to see if the value is in the operator table
 function isOperator(text) {
     return operations.hasOwnProperty(text.trim());
-}
-
-//Tries to identify if a value is a constant or a variable
-function getTokenType(token) {
-    if (isNumber(token)) {
-        return 'constant';
-    } else if (token.match(/^-?\d*(,\d+)*(\.\d+(e\d+)?)?[a-zA-Z]\^?\d*$/)) {
-        /* ^        beginning of line
-           -?       optional negative sign
-           \d*      zero or more digits         <-DIFFERENT FROM CONSTANT
-           (,\d+)*  optional allowance for commas as thousands seperators
-            (\.      decimal seperator
-            \d+      one or more digits
-             (e       exponentiation
-              \d+      exponent digits
-             )?       is optional (exponent)
-            )?       is optional (decimal)
-           [a-z     character capture: a-z      <-DIFFERENT FROM CONSTANT
-           A-Z]     character capture: A-Z      <-DIFFERENT FROM CONSTANT
-           ^?       optional exponentiation
-           \d*      optional exponent
-           $        end of line
-        */
-        return 'variable';
-    } else {
-        return 'unknown';
-    }
 }
 
 function isAlpha(character) {

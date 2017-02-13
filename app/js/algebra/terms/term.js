@@ -17,8 +17,13 @@ function Term(token, parenLevel, type, value, symbol, power) {
 };
 
 Term.prototype.genToken = function() {
+    var settings = {algebra: {fix: 2}};
     if (this.type == 'constant') {
-        this.token = this.value.toString(10);
+	    if (Math.abs(this.value - Math.round(this.value)) < (Number.EPSILON || 2.2204460492503130808472633361816E-16)) {
+            this.token = (Math.round(this.value)).toString(10);
+        } else {
+	        this.token = this.value.toFixed(settings.algebra.fix).toString(10);
+    }
     } else if (this.type == 'variable') {
         var sortedArrays = utility.sortArraysTogether(this.symbol, this.power);
         this.symbol = sortedArrays.a;
@@ -35,7 +40,11 @@ Term.prototype.genToken = function() {
         if (Math.abs(this.coefficient) == 1) {
             this.token += this.coefficient < 0 ? '-' : '';
         } else {
-            this.token += this.coefficient.toString(10);
+            if (Math.abs(this.coefficient - Math.round(this.coefficient)) < (Number.EPSILON || 2.2204460492503130808472633361816E-16)) {
+                this.token += (Math.round(this.coefficient)).toString(10);
+            } else {
+                this.token += this.coefficient.toFixed(settings.algebra.fix).toString(10);
+            }
         }
         for (var i = 0; i < this.symbol.length; i++) {
             if (this.power[i] == 0) {
