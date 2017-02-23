@@ -6,31 +6,35 @@ var predicate = function(a, b) {
     //Constant on constant subtraction
 
     if (a.type == 'constant' && b.type == 'constant') {
-        //Get the two value and subtract them
         var answer = a.value - b.value;
-        //Create new token object for result
-        result.result = new Term('', a.parenLevel, 'constant', answer);
+
+        result.result = new Term('', Math.min(a.parenLevel, b.parenLevel), 'constant', answer);
         result.complete = true;
 
+    //Variable on variable subtraction
     } else if (a.type == 'variable' && b.type == 'variable') {
         for (var i = 0; i < a.symbol.length; i++) {
+            //Check for symbol matches, and fail if not
             if (a.symbol[i] != b.symbol[i]) {
                 return result;
             }
+
+            //Check for power matches, and fail if not
             if (a.power[i] != b.power[i]) {
                 return result;
             }
             var answer = a.coefficient - b.coefficient;
+
+            //0 coefficient, so return a constant
             if (answer == 0) {
-                result.result = new Term('', a.parenLevel, 'constant', 0);
+                result.result = new Term('', Math.min(a.parenLevel, b.parenLevel), 'constant', 0);
                 result.complete = true;
                 return result;
             }
-            result.result = new Term('', a.parenLevel, 'variable', answer, a.symbol, a.power);
+            result.result = new Term('', Math.min(a.parenLevel, b.parenLevel), 'variable', answer, a.symbol, a.power);
             result.complete = true;
         }
     }
-    //Return token object
     return result;
 };
 

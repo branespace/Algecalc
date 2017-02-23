@@ -18,4 +18,4 @@ var predicate = function(a, b) {
     return result;
 };
 
-module.exports = new Operation('%', 4, 'left', true, predicate);
+module.exports = new Operation('%', 4, 'left', 'left', predicate);
