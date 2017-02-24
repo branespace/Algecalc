@@ -53,4 +53,4 @@ var predicate = function(a, b) {
     return result;
 };
 
-module.exports = new Operation('*', 4, 'left', 'both', predicate);
+module.exports = new Operation('*', 4, 'left', 'both', predicate, '/');

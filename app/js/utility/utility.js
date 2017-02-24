@@ -93,4 +93,70 @@ utility.copyBranch = function copyBranch(branch, newTree) {
     return newBranch;
 };
 
+utility.tidyExpr = function tidyExpr(val, index, arr) {
+    var tokenOut, negate;
+//Delimiter support for expressions (s.a. colorization and MathJax support)
+var delim = {
+        open: '',  //Start of expression
+        close: '', //End of expression
+        highlight: '<span style="color: #ff0000">', //Start of highlighted section
+        highlightEnd: '</span>'                     //End of highlighted section
+    };
+    tokenOut = val.token;
+
+    if (val.type == 'operator' && val.token == '+')  {
+        if (arr.length > index + 1) {
+            if (arr[index + 1].type == 'constant') {
+                if (arr[index + 1].value < 0) {
+                    arr[index + 1].value = 0 - arr[index + 1].value;
+                    arr[index + 1].genToken(); 
+                    arr[index + 1].flip = true;
+                    tokenOut = '-';
+                }
+            } else if (arr[index + 1].type == 'variable') {
+                if (arr[index + 1].coefficient < 0) {
+                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
+                    arr[index + 1].genToken();
+                    arr[index + 1].flip = true;
+                    tokenOut = '-';
+                }
+            }
+        }
+    } else if (val.type == 'operator' && val.token == '-')  {
+        if (arr.length > index + 1) {
+            if (arr[index + 1].type == 'constant') {
+                if (arr[index + 1].value < 0) {
+                    arr[index + 1].value = 0 - arr[index + 1].value;
+                    arr[index + 1].genToken(); 
+                    arr[index + 1].flip = true;
+                    tokenOut = '+';
+                }
+            } else if (arr[index + 1].type == 'variable') {
+                if (arr[index + 1].coefficient < 0) {
+                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
+                    arr[index + 1].genToken();
+                    arr[index + 1].flip = true;
+                    tokenOut = '+';
+                }
+            }
+        }
+    }
+    if (val.hasOwnProperty('flip') && val.flip) {
+        if (val.type == 'constant') {
+            val.value = 0 - val.value;
+            val.genToken(); 
+            val.flip = false;
+        } else if (val.type == 'variable') {
+            val.coefficient = 0 - val.coefficient;
+            val.genToken();
+            val.flip = false;
+        }       
+    }
+    if (this.indexOf(val) > -1) {
+        tokenOut = delim.highlight + tokenOut + delim.highlightEnd;
+        this.splice(this.indexOf(val), 1);
+    } 
+    return tokenOut;
+}
+
 module.exports = utility;

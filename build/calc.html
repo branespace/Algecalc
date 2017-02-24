@@ -16,15 +16,39 @@ input {
     font-family: "Courier New", Courier, monospace;
     font-size: 0.75em;
 }
+.collapse{
+  cursor: pointer;
+  display: block;
+  background: #cdf;
+}
+.collapse + input{
+  display: none; /* hide the checkboxes */
+}
+.collapse + input + div{
+  display:none;
+}
+.collapse + input:checked + div{
+  display:block;
+}
 </style>
 </head>
 <body>
+<label class="collapse" for="_1"><h2>EXPR</h2></label>
+<input id="_1" type="checkbox"> 
 <div id="calculationhistory">
-  <h2>Calculation History</h2>
+  <h2>Simplify Expression</h2>
+  <hr />
+  <input type="text" id="inputBox" />
+  <input type="Button" value="Calculate!" id="submitButton" onClick="return false;" />
 </div>
-<hr />
-<input type="text" id="inputBox" />
-<input type="Button" value="Calculate!" id="submitButton" onClick="return false;" />
+<label class="collapse" for="_2"><h2>EQN</h2></label>
+<input id="_2" type="checkbox" checked> 
+<div id="calculationhistory2">
+  <h2>Solve Equation</h2>
+  <hr />
+  <input type="text" id="inputBox2" />
+  <input type="Button" value="Calculate!" id="submitButton2" onClick="return false;" />
+</div>
 <script src="calc.js"></script>
 </body>
 </html>

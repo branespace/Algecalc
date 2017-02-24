@@ -45,4 +45,4 @@ var predicate = function(a, b) {
     return result;
 };
 
-module.exports = new Operation('+', 5, 'left', false, predicate);
+module.exports = new Operation('+', 5, 'left', false, predicate, '-', true);

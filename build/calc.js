@@ -56,12 +56,23 @@
 	    inputField = document.getElementById('inputBox');
 
 	    //Enable handlers for calculation (button click, enter pressed)
-	    submitButton.addEventListener('click', calculate);
+	    submitButton.addEventListener('click', simplifyExpr);
 	    inputField.addEventListener('keydown', function(event) {
 	        if (event.key === 'Enter') {
-	            calculate();
+	            simplifyExpr();
 	        }
 	    });
+	    submitButton2 = document.getElementById('submitButton2');
+	    calcHistory2 = document.getElementById('calculationhistory2');
+	    inputField2 = document.getElementById('inputBox2');
+
+	    //Enable handlers for calculation (button click, enter pressed)
+	    submitButton2.addEventListener('click', solveEquation);
+	    inputField2.addEventListener('keydown', function(event) {
+	        if (event.key === 'Enter') {
+	            solveEquation();
+	        }
+	    });    
 	};
 
 	//Algebra calcuation module
@@ -79,114 +90,26 @@
 	    };
 
 	//Main calculation loop
-	var calculate = function() {
-	    var tokenizer = __webpack_require__(12);
+	var simplifyExpr = function() {
 
-	    //Tokenize input
-	    var tokenArray = tokenizer(inputField.value);
-	    //Convert tokens to RPN expression
-	    var expr = tokenArray;//tokensToRPN(tokenArray.slice());
-	    //Error flag
-	    var error = false;
+	    __webpack_require__(12)(inputField.value, calcHistory, solutionCount);
 
-	    //Create new output div element
-	    var answerDiv = document.createElement('div');
-	    answerDiv.className = 'solution ' + solutionCount;
-
-	    //TESTING
-	    var postfix = (__webpack_require__(14)(tokenArray.slice()));
-	    var binaryTree = (__webpack_require__(15)(postfix.slice()));
-	    var tokenizedArray = (__webpack_require__(16)(binaryTree));
-	    var evaluated = (__webpack_require__(17)(binaryTree));
-
-	    //Create and add expression and RPN string
-	    answerDiv.innerHTML += "<br />Expression: " + delim.open + tokenArray.map(tidyExpr.bind([])).join(' ') + delim.close;
-	    
-	    //Perform calculation
-	    //var calculation = calculateVal(expr);
-	    //Iterate through steps
-	    for(var i = 0; i < evaluated.steps.length; i++) {
-	        //Add step description to div
-	        var stepExpr = __webpack_require__(16)(evaluated.steps[i].tree);
-	        answerDiv.innerHTML += "<br />     Step " + (i + 1) + ": " + delim.open;
-	        answerDiv.innerHTML += stepExpr.map(tidyExpr.bind(evaluated.steps[i].nodes)).join(' ');
-
-	        //Close step description
-	        answerDiv.innerHTML += delim.close;
-	    }
-	        
-	    //Add answer to div display
-	    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (__webpack_require__(16)(evaluated.tree)).map(tidyExpr.bind([])).join(' ') + delim.close;
-
-	    //Add div to dom and clear input box
-	    calcHistory.appendChild(answerDiv);
-	    inputField.value = "";
+	    inputField.value = '';
 
 	    //Increment solution count for naming div
 	    solutionCount++;
 	};
 
-	function tidyExpr(val, index, arr) {
-	    var tokenOut, negate;
-	    //if (val.token == '-') {
-	    //    val.token = '+';
-	    //}
-	    tokenOut = val.token;
+	var solveEquation = function() {
+	    var inputs = inputField2.value.split('=');
 
-	    if (val.type == 'operator' && val.token == '+')  {
-	        if (arr.length > index + 1) {
-	            if (arr[index + 1].type == 'constant') {
-	                if (arr[index + 1].value < 0) {
-	                    arr[index + 1].value = 0 - arr[index + 1].value;
-	                    arr[index + 1].genToken(); 
-	                    arr[index + 1].flip = true;
-	                    tokenOut = '-';
-	                }
-	            } else if (arr[index + 1].type == 'variable') {
-	                if (arr[index + 1].coefficient < 0) {
-	                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
-	                    arr[index + 1].genToken();
-	                    arr[index + 1].flip = true;
-	                    tokenOut = '-';
-	                }
-	            }
-	        }
-	    } else if (val.type == 'operator' && val.token == '-')  {
-	        if (arr.length > index + 1) {
-	            if (arr[index + 1].type == 'constant') {
-	                if (arr[index + 1].value < 0) {
-	                    arr[index + 1].value = 0 - arr[index + 1].value;
-	                    arr[index + 1].genToken(); 
-	                    arr[index + 1].flip = true;
-	                    tokenOut = '+';
-	                }
-	            } else if (arr[index + 1].type == 'variable') {
-	                if (arr[index + 1].coefficient < 0) {
-	                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
-	                    arr[index + 1].genToken();
-	                    arr[index + 1].flip = true;
-	                    tokenOut = '+';
-	                }
-	            }
-	        }
-	    }
-	    if (val.hasOwnProperty('flip') && val.flip) {
-	        if (val.type == 'constant') {
-	            val.value = 0 - val.value;
-	            val.genToken(); 
-	            val.flip = false;
-	        } else if (val.type == 'variable') {
-	            val.coefficient = 0 - val.coefficient;
-	            val.genToken();
-	            val.flip = false;
-	        }       
-	    }
-	    if (this.indexOf(val) > -1) {
-	        tokenOut = delim.highlight + tokenOut + delim.highlightEnd;
-	        this.splice(this.indexOf(val), 1);
-	    } 
-	    return tokenOut;
-	}
+	    __webpack_require__(19)(inputs[0], inputs[1], calcHistory2, solutionCount);
+
+	    inputField2.value = '';
+
+	    //Increment solution count for naming div
+	    solutionCount++;  
+	};
 
 /***/ },
 /* 1 */
@@ -276,18 +199,20 @@
 	    return result;
 	};
 
-	module.exports = new Operation('+', 5, 'left', false, predicate);
+	module.exports = new Operation('+', 5, 'left', false, predicate, '-', true);
 
 /***/ },
 /* 4 */
 /***/ function(module, exports) {
 
-	module.exports = function Operation(token, precedence, associativity, distribution, predicate) {
+	module.exports = function Operation(token, precedence, associativity, distribution, predicate, inverse, negateInverse) {
 	    this.token = token;
 	    this.preced = precedence;
 	    this.assoc = associativity;
 	    this.distrib = distribution;
 	    this.pred = predicate;
+	    this.inverse = inverse;
+	    this.negInverse = negateInverse;
 	};
 
 /***/ },
@@ -481,6 +406,72 @@
 	    return newBranch;
 	};
 
+	utility.tidyExpr = function tidyExpr(val, index, arr) {
+	    var tokenOut, negate;
+	//Delimiter support for expressions (s.a. colorization and MathJax support)
+	var delim = {
+	        open: '',  //Start of expression
+	        close: '', //End of expression
+	        highlight: '<span style="color: #ff0000">', //Start of highlighted section
+	        highlightEnd: '</span>'                     //End of highlighted section
+	    };
+	    tokenOut = val.token;
+
+	    if (val.type == 'operator' && val.token == '+')  {
+	        if (arr.length > index + 1) {
+	            if (arr[index + 1].type == 'constant') {
+	                if (arr[index + 1].value < 0) {
+	                    arr[index + 1].value = 0 - arr[index + 1].value;
+	                    arr[index + 1].genToken(); 
+	                    arr[index + 1].flip = true;
+	                    tokenOut = '-';
+	                }
+	            } else if (arr[index + 1].type == 'variable') {
+	                if (arr[index + 1].coefficient < 0) {
+	                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
+	                    arr[index + 1].genToken();
+	                    arr[index + 1].flip = true;
+	                    tokenOut = '-';
+	                }
+	            }
+	        }
+	    } else if (val.type == 'operator' && val.token == '-')  {
+	        if (arr.length > index + 1) {
+	            if (arr[index + 1].type == 'constant') {
+	                if (arr[index + 1].value < 0) {
+	                    arr[index + 1].value = 0 - arr[index + 1].value;
+	                    arr[index + 1].genToken(); 
+	                    arr[index + 1].flip = true;
+	                    tokenOut = '+';
+	                }
+	            } else if (arr[index + 1].type == 'variable') {
+	                if (arr[index + 1].coefficient < 0) {
+	                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
+	                    arr[index + 1].genToken();
+	                    arr[index + 1].flip = true;
+	                    tokenOut = '+';
+	                }
+	            }
+	        }
+	    }
+	    if (val.hasOwnProperty('flip') && val.flip) {
+	        if (val.type == 'constant') {
+	            val.value = 0 - val.value;
+	            val.genToken(); 
+	            val.flip = false;
+	        } else if (val.type == 'variable') {
+	            val.coefficient = 0 - val.coefficient;
+	            val.genToken();
+	            val.flip = false;
+	        }       
+	    }
+	    if (this.indexOf(val) > -1) {
+	        tokenOut = delim.highlight + tokenOut + delim.highlightEnd;
+	        this.splice(this.indexOf(val), 1);
+	    } 
+	    return tokenOut;
+	}
+
 	module.exports = utility;
 
 /***/ },
@@ -527,7 +518,7 @@
 	    return result;
 	};
 
-	module.exports = new Operation('-', 5, 'left', false, predicate);
+	module.exports = new Operation('-', 5, 'left', false, predicate, '+');
 
 /***/ },
 /* 8 */
@@ -588,7 +579,7 @@
 	    return result;
 	};
 
-	module.exports = new Operation('*', 4, 'left', 'both', predicate);
+	module.exports = new Operation('*', 4, 'left', 'both', predicate, '/');
 
 /***/ },
 /* 9 */
@@ -658,7 +649,7 @@
 	    return result;
 	};
 
-	module.exports = new Operation('/', 4, 'left', 'left', predicate);
+	module.exports = new Operation('/', 4, 'left', 'left', predicate, '*', false);
 
 /***/ },
 /* 10 */
@@ -712,9 +703,70 @@
 /* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
+	//Algebra calcuation module
+	var algebra = __webpack_require__(1)
+
+	//List of enabled operations
+	var operations = algebra.operations;
+
+	//Utility library
+	var utility = __webpack_require__(6);
+
+	//Delimiter support for expressions (s.a. colorization and MathJax support)
+	var delim = {
+	        open: '',  //Start of expression
+	        close: '', //End of expression
+	        highlight: '<span style="color: #ff0000">', //Start of highlighted section
+	        highlightEnd: '</span>'                     //End of highlighted section
+	    };
+
+	//Main calculation loop
+	module.exports = function(input, calcHistory, solutionCount) {
+	    var tokenizer = __webpack_require__(13);
+
+	    //Tokenize input
+	    var tokenArray = tokenizer(input);
+
+	    //Error flag
+	    var error = false;
+
+	    //Create new output div element
+	    var answerDiv = document.createElement('div');
+	    answerDiv.id = 'solution ' + solutionCount;
+
+	    var postfix = (__webpack_require__(15)(tokenArray.slice()));
+	    var binaryTree = (__webpack_require__(16)(postfix.slice()));
+	    var tokenizedArray = (__webpack_require__(17)(binaryTree));
+	    var evaluated = (__webpack_require__(18)(binaryTree));
+
+	    //Create and add expression and RPN string
+	    answerDiv.innerHTML += "<br />Expression: " + delim.open + tokenArray.map(utility.tidyExpr.bind([])).join(' ') + delim.close;
+	    
+	    //Iterate through steps
+	    for(var i = 0; i < evaluated.steps.length; i++) {
+	        //Add step description to div
+	        var stepExpr = __webpack_require__(17)(evaluated.steps[i].tree);
+	        answerDiv.innerHTML += "<br />     Step " + (i + 1) + ": " + delim.open;
+	        answerDiv.innerHTML += stepExpr.map(utility.tidyExpr.bind(evaluated.steps[i].nodes)).join(' ');
+
+	        //Close step description
+	        answerDiv.innerHTML += delim.close;
+	    }
+	        
+	    //Add answer to div display
+	    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (__webpack_require__(17)(evaluated.tree)).map(utility.tidyExpr.bind([])).join(' ') + delim.close;
+
+	    //Add div to dom and clear input box
+	    calcHistory.appendChild(answerDiv);
+	};    
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var operations = __webpack_require__(2);
 	var Term = __webpack_require__(5);
-	var Terms = __webpack_require__(13);
+	var Terms = __webpack_require__(14);
 
 	//Takes in text and turns it into tokens for RPN processing
 	module.exports = function(text) {
@@ -842,7 +894,7 @@
 	}
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var operations = __webpack_require__(2);
@@ -922,7 +974,7 @@
 	};
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	//Based on the Shunting Yard Algorithm - Dijkstra
@@ -984,7 +1036,7 @@
 	};
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var utility = __webpack_require__(6);
@@ -1020,7 +1072,7 @@
 	};
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Term = __webpack_require__(5);
@@ -1067,15 +1119,15 @@
 	}
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var operations = __webpack_require__(2);
 	var utility = __webpack_require__(6);
 	var Term = __webpack_require__(5);
 	var BinaryNode = __webpack_require__(6).BinaryNode;
-	var postfixToTree = __webpack_require__(15);
-	var tokenToPostfix = __webpack_require__(14);
+	var postfixToTree = __webpack_require__(16);
+	var tokenToPostfix = __webpack_require__(15);
 
 	module.exports = function(tree) {
 	    var steps = [];
@@ -1385,6 +1437,183 @@
 	        root = root.parent;
 	    } 
 	    return root;
+	}
+
+/***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	//Algebra calcuation module
+	var algebra   = __webpack_require__(1)
+	var tokenizer = __webpack_require__(13);
+	var postFixer = __webpack_require__(15);
+	var treeMaker = __webpack_require__(16);
+	var solver    = __webpack_require__(20);
+	var treeDispl = __webpack_require__(17);
+
+	//List of enabled operations
+	var operations = algebra.operations;
+
+	//Utility library
+	var utility = __webpack_require__(6);
+
+	//Delimiter support for expressions (s.a. colorization and MathJax support)
+	var delim = {
+	        open: '',  //Start of expression
+	        close: '', //End of expression
+	        highlight: '<span style="color: #ff0000">', //Start of highlighted section
+	        highlightEnd: '</span>'                     //End of highlighted section
+	    };
+
+	//Main calculation loop
+	module.exports = function(left, right, calcHistory, solutionCount) {
+
+	    //Tokenize input
+	    var tokens = [tokenizer(left), tokenizer(right)];
+	    var postfix = [postFixer(tokens[0]), postFixer(tokens[1])];
+	    var trees = [treeMaker(postfix[0]), treeMaker(postfix[1])];
+	    var solution = solver(trees[0], trees[1]);
+
+	    //Error flag
+	    var error = false;
+
+	    //Create new output div element
+	    var answerDiv = document.createElement('div');
+	    answerDiv.id = 'solution ' + solutionCount;
+
+	    //Create and add expression
+	    answerDiv.innerHTML += "<br />Equation: " + delim.open + tokens[0].map(utility.tidyExpr.bind([])).join(' ') + ' = ' + tokens[1].map(utility.tidyExpr.bind([])).join(' ') + delim.close;
+	    
+	    //Iterate through steps
+	    for(var i = 0; i < solution.steps.length; i++) {
+	        //Add step description to div
+	        var stepExprLeft = treeDispl(solution.steps[i].left).map(utility.tidyExpr.bind(solution.steps[i].nodes)).join(' ')
+	        var stepExprRight = treeDispl(solution.steps[i].right).map(utility.tidyExpr.bind(solution.steps[i].nodes)).join(' ')
+	        answerDiv.innerHTML += "<br />     Step " + (i + 1) + ": " + delim.open;
+	        answerDiv.innerHTML += stepExprLeft + ' = ' + stepExprRight;
+
+	        //Close step description
+	        answerDiv.innerHTML += delim.close;
+	    }
+	        
+	    //Add answer to div display
+	    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (treeDispl(solution.left)).map(utility.tidyExpr.bind([])).join(' ') + ' = ' + (treeDispl(solution.right)).map(utility.tidyExpr.bind([])).join(' ') + delim.close;
+
+	    //Add div to dom and clear input box
+	    calcHistory.appendChild(answerDiv);
+	};    
+
+/***/ },
+/* 20 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var algebra = __webpack_require__(1);
+	var simplify = __webpack_require__(18);
+	var utility = __webpack_require__(6);
+	var Term = __webpack_require__(5);
+	var operations = algebra.operations;
+
+	module.exports = function equationSolver(left, right) {
+	    var result = {steps: []};
+
+	    if (!containsVariable(left) && containsVariable(right)) {
+	        var temp = right;
+	        right = left;
+	        left = temp;
+	    }
+
+	    while (containsVariable(left) && left.node.type != 'variable') {
+	        if (containsVariable(left.left) && containsVariable(left.right)) {
+	            var simplified = simplify(left);
+	            if (!simplified) {
+	                return false;
+	            }
+	            left = simplified.result;
+	            for (var i = 0; i < simplified.steps.length; i++) {
+	                result.steps[i] = {};
+	                result.steps[i].left = simplified.steps[i].tree;
+	                result.steps[i].right = right;
+	                result.steps[i].nodes = simplified.steps[i].nodes;
+	            }
+	        }
+	        if (containsVariable(left.left)) {
+	            var step = {};
+	            step.left = utility.copyBranch(left);;
+	            step.right = utility.copyBranch(right);
+	            step.nodes = [left.node, left.right.node];
+	            result.steps.push(step);
+	            right = new utility.BinaryNode(new Term(operations[left.node.token].inverse, 0, 'operator'), null, right, left.right);
+	            left.right.parent = right;
+	            right.left.parent = right;
+	            left = left.left;
+	            left.parent = null;
+	        } else if (containsVariable(left.right)) {
+	            var step = {};
+	            step.left = utility.copyBranch(left);;
+	            step.right = utility.copyBranch(right);
+	            step.nodes = [left.node, left.left.node];
+	            result.steps.push(step);
+	            right = new utility.BinaryNode(new Term(operations[left.node.token].inverse, 0, 'operator'), null, right, left.left);
+	            left.left.parent = right;
+	            right.left.parent = right;
+	            left = left.right;
+	            left.parent = null;
+	        }
+	    }
+
+	    while (containsVariable(right)) {
+	        //Clear variables from right side
+	    }
+
+	    //Handle coefficients
+	    if (left.node.coefficient != 1) {
+	        var step = {};
+	        step.left = utility.copyBranch(left);;
+	        step.right = utility.copyBranch(right);
+	        step.nodes = [left.node];
+	        result.steps.push(step);
+	        right = new utility.BinaryNode(new Term('/', 0, 'operator'), null, right, null);
+	        right.right = new utility.BinaryNode(new Term('', 0, 'constant', left.node.coefficient), right, null, null);
+	        right.left.parent = right;
+	        left.node = new Term('', left.node.parenLevel, 'variable', 1, left.node.symbol, left.node.power);
+	    }
+
+	    //Simplify results
+	    var simplified = simplify(left);
+	    if (simplified) {
+	        left = simplified.tree;
+	        for (var i = 0; i < simplified.steps.length; i++) {
+	            var step = {};
+	            step.left = simplified.steps[i].tree;
+	            step.right = right;
+	            step.nodes = simplified.steps[i].nodes;
+	            result.steps.push(step);
+	        }
+	    }
+
+	    var simplified = simplify(right);
+	    if (simplified) {
+	        right = simplified.tree;
+	        for (var i = 0; i < simplified.steps.length; i++) {
+	            var step = {};
+	            step.left = left;
+	            step.right = simplified.steps[i].tree;
+	            step.nodes = simplified.steps[i].nodes;
+	            result.steps.push(step);
+	        }
+	    }  
+
+	    result.left = left;
+	    result.right = right;
+
+	    return result;
+
+	};
+
+	function containsVariable(tree) {
+	    return ((tree.left ? containsVariable(tree.left) : false) ||
+	            (tree.right ? containsVariable(tree.right) : false) ||
+	            (tree && tree.node && tree.node.type == 'variable'));
 	}
 
 /***/ }

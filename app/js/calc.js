@@ -10,12 +10,23 @@ window.onload = function() {
     inputField = document.getElementById('inputBox');
 
     //Enable handlers for calculation (button click, enter pressed)
-    submitButton.addEventListener('click', calculate);
+    submitButton.addEventListener('click', simplifyExpr);
     inputField.addEventListener('keydown', function(event) {
         if (event.key === 'Enter') {
-            calculate();
+            simplifyExpr();
         }
     });
+    submitButton2 = document.getElementById('submitButton2');
+    calcHistory2 = document.getElementById('calculationhistory2');
+    inputField2 = document.getElementById('inputBox2');
+
+    //Enable handlers for calculation (button click, enter pressed)
+    submitButton2.addEventListener('click', solveEquation);
+    inputField2.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            solveEquation();
+        }
+    });    
 };
 
 //Algebra calcuation module
@@ -33,111 +44,23 @@ var delim = {
     };
 
 //Main calculation loop
-var calculate = function() {
-    var tokenizer = require('./algebra/exprStringToTokenizedArray.js');
+var simplifyExpr = function() {
 
-    //Tokenize input
-    var tokenArray = tokenizer(inputField.value);
-    //Convert tokens to RPN expression
-    var expr = tokenArray;//tokensToRPN(tokenArray.slice());
-    //Error flag
-    var error = false;
+    require('./simplifyExpr.js')(inputField.value, calcHistory, solutionCount);
 
-    //Create new output div element
-    var answerDiv = document.createElement('div');
-    answerDiv.className = 'solution ' + solutionCount;
-
-    //TESTING
-    var postfix = (require('./algebra/tokenToPostfix.js')(tokenArray.slice()));
-    var binaryTree = (require('./algebra/postfixToBinaryTree.js')(postfix.slice()));
-    var tokenizedArray = (require('./algebra/binaryTreeToTokenizedArray.js')(binaryTree));
-    var evaluated = (require('./algebra/evaluateBinaryTree.js')(binaryTree));
-
-    //Create and add expression and RPN string
-    answerDiv.innerHTML += "<br />Expression: " + delim.open + tokenArray.map(tidyExpr.bind([])).join(' ') + delim.close;
-    
-    //Perform calculation
-    //var calculation = calculateVal(expr);
-    //Iterate through steps
-    for(var i = 0; i < evaluated.steps.length; i++) {
-        //Add step description to div
-        var stepExpr = require('./algebra/binaryTreeToTokenizedArray.js')(evaluated.steps[i].tree);
-        answerDiv.innerHTML += "<br />     Step " + (i + 1) + ": " + delim.open;
-        answerDiv.innerHTML += stepExpr.map(tidyExpr.bind(evaluated.steps[i].nodes)).join(' ');
-
-        //Close step description
-        answerDiv.innerHTML += delim.close;
-    }
-        
-    //Add answer to div display
-    answerDiv.innerHTML += "<br />     Answer: " + delim.open + (require('./algebra/binaryTreeToTokenizedArray.js')(evaluated.tree)).map(tidyExpr.bind([])).join(' ') + delim.close;
-
-    //Add div to dom and clear input box
-    calcHistory.appendChild(answerDiv);
-    inputField.value = "";
+    inputField.value = '';
 
     //Increment solution count for naming div
     solutionCount++;
 };
 
-function tidyExpr(val, index, arr) {
-    var tokenOut, negate;
-    //if (val.token == '-') {
-    //    val.token = '+';
-    //}
-    tokenOut = val.token;
+var solveEquation = function() {
+    var inputs = inputField2.value.split('=');
 
-    if (val.type == 'operator' && val.token == '+')  {
-        if (arr.length > index + 1) {
-            if (arr[index + 1].type == 'constant') {
-                if (arr[index + 1].value < 0) {
-                    arr[index + 1].value = 0 - arr[index + 1].value;
-                    arr[index + 1].genToken(); 
-                    arr[index + 1].flip = true;
-                    tokenOut = '-';
-                }
-            } else if (arr[index + 1].type == 'variable') {
-                if (arr[index + 1].coefficient < 0) {
-                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
-                    arr[index + 1].genToken();
-                    arr[index + 1].flip = true;
-                    tokenOut = '-';
-                }
-            }
-        }
-    } else if (val.type == 'operator' && val.token == '-')  {
-        if (arr.length > index + 1) {
-            if (arr[index + 1].type == 'constant') {
-                if (arr[index + 1].value < 0) {
-                    arr[index + 1].value = 0 - arr[index + 1].value;
-                    arr[index + 1].genToken(); 
-                    arr[index + 1].flip = true;
-                    tokenOut = '+';
-                }
-            } else if (arr[index + 1].type == 'variable') {
-                if (arr[index + 1].coefficient < 0) {
-                    arr[index + 1].coefficient = 0 - arr[index + 1].coefficient;
-                    arr[index + 1].genToken();
-                    arr[index + 1].flip = true;
-                    tokenOut = '+';
-                }
-            }
-        }
-    }
-    if (val.hasOwnProperty('flip') && val.flip) {
-        if (val.type == 'constant') {
-            val.value = 0 - val.value;
-            val.genToken(); 
-            val.flip = false;
-        } else if (val.type == 'variable') {
-            val.coefficient = 0 - val.coefficient;
-            val.genToken();
-            val.flip = false;
-        }       
-    }
-    if (this.indexOf(val) > -1) {
-        tokenOut = delim.highlight + tokenOut + delim.highlightEnd;
-        this.splice(this.indexOf(val), 1);
-    } 
-    return tokenOut;
-}
+    require('./solveEquation.js')(inputs[0], inputs[1], calcHistory2, solutionCount);
+
+    inputField2.value = '';
+
+    //Increment solution count for naming div
+    solutionCount++;  
+};

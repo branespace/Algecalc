@@ -62,4 +62,4 @@ var predicate = function(a, b) {
     return result;
 };
 
-module.exports = new Operation('/', 4, 'left', 'left', predicate);
+module.exports = new Operation('/', 4, 'left', 'left', predicate, '*', false);
